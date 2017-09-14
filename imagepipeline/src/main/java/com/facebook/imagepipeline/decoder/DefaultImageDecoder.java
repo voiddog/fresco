@@ -9,19 +9,12 @@
 
 package com.facebook.imagepipeline.decoder;
 
-import javax.annotation.Nullable;
-
-import java.io.InputStream;
-import java.util.Map;
-
 import android.graphics.Bitmap;
-
 import com.facebook.common.internal.Closeables;
 import com.facebook.common.references.CloseableReference;
 import com.facebook.imageformat.DefaultImageFormats;
 import com.facebook.imageformat.ImageFormat;
 import com.facebook.imageformat.ImageFormatChecker;
-import com.facebook.imagepipeline.animated.factory.AnimatedImageFactory;
 import com.facebook.imagepipeline.common.ImageDecodeOptions;
 import com.facebook.imagepipeline.image.CloseableImage;
 import com.facebook.imagepipeline.image.CloseableStaticBitmap;
@@ -29,6 +22,9 @@ import com.facebook.imagepipeline.image.EncodedImage;
 import com.facebook.imagepipeline.image.ImmutableQualityInfo;
 import com.facebook.imagepipeline.image.QualityInfo;
 import com.facebook.imagepipeline.platform.PlatformDecoder;
+import java.io.InputStream;
+import java.util.Map;
+import javax.annotation.Nullable;
 
 /**
  * Decodes images.
@@ -47,8 +43,8 @@ import com.facebook.imagepipeline.platform.PlatformDecoder;
  */
 public class DefaultImageDecoder implements ImageDecoder {
 
-  private final AnimatedImageFactory mAnimatedImageFactory;
-  private final Bitmap.Config mBitmapConfig;
+  private final ImageDecoder mAnimatedGifDecoder;
+  private final ImageDecoder mAnimatedWebPDecoder;
   private final PlatformDecoder mPlatformDecoder;
 
   private final ImageDecoder mDefaultDecoder = new ImageDecoder() {
@@ -62,9 +58,9 @@ public class DefaultImageDecoder implements ImageDecoder {
       if (imageFormat == DefaultImageFormats.JPEG) {
         return decodeJpeg(encodedImage, length, qualityInfo, options);
       } else if (imageFormat == DefaultImageFormats.GIF) {
-        return decodeGif(encodedImage, options);
+        return decodeGif(encodedImage, length, qualityInfo, options);
       } else if (imageFormat == DefaultImageFormats.WEBP_ANIMATED) {
-        return decodeAnimatedWebp(encodedImage, options);
+        return decodeAnimatedWebp(encodedImage, length, qualityInfo, options);
       } else if (imageFormat == ImageFormat.UNKNOWN) {
         throw new IllegalArgumentException("unknown image format");
       }
@@ -76,19 +72,19 @@ public class DefaultImageDecoder implements ImageDecoder {
   private final Map<ImageFormat, ImageDecoder> mCustomDecoders;
 
   public DefaultImageDecoder(
-      final AnimatedImageFactory animatedImageFactory,
-      final PlatformDecoder platformDecoder,
-      final Bitmap.Config bitmapConfig) {
-    this(animatedImageFactory, platformDecoder, bitmapConfig, null);
+      final ImageDecoder animatedGifDecoder,
+      final ImageDecoder animatedWebPDecoder,
+      final PlatformDecoder platformDecoder) {
+    this(animatedGifDecoder, animatedWebPDecoder, platformDecoder, null);
   }
 
   public DefaultImageDecoder(
-      final AnimatedImageFactory animatedImageFactory,
+      final ImageDecoder animatedGifDecoder,
+      final ImageDecoder animatedWebPDecoder,
       final PlatformDecoder platformDecoder,
-      final Bitmap.Config bitmapConfig,
       @Nullable Map<ImageFormat, ImageDecoder> customDecoders) {
-    mAnimatedImageFactory = animatedImageFactory;
-    mBitmapConfig = bitmapConfig;
+    mAnimatedGifDecoder = animatedGifDecoder;
+    mAnimatedWebPDecoder = animatedWebPDecoder;
     mPlatformDecoder = platformDecoder;
     mCustomDecoders = customDecoders;
   }
@@ -133,16 +129,18 @@ public class DefaultImageDecoder implements ImageDecoder {
    * @return a CloseableImage
    */
   public CloseableImage decodeGif(
-      EncodedImage encodedImage,
-      ImageDecodeOptions options) {
+      final EncodedImage encodedImage,
+      final int length,
+      final QualityInfo qualityInfo,
+      final ImageDecodeOptions options) {
     InputStream is = encodedImage.getInputStream();
     if (is == null) {
       return null;
     }
     try {
       if (!options.forceStaticImage
-          && mAnimatedImageFactory != null) {
-        return mAnimatedImageFactory.decodeGif(encodedImage, options, mBitmapConfig);
+          && mAnimatedGifDecoder != null) {
+        return mAnimatedGifDecoder.decode(encodedImage, length, qualityInfo, options);
       }
       return decodeStaticImage(encodedImage, options);
     } finally {
@@ -205,7 +203,9 @@ public class DefaultImageDecoder implements ImageDecoder {
    */
   public CloseableImage decodeAnimatedWebp(
       final EncodedImage encodedImage,
+      final int length,
+      final QualityInfo qualityInfo,
       final ImageDecodeOptions options) {
-    return mAnimatedImageFactory.decodeWebP(encodedImage, options, mBitmapConfig);
+    return mAnimatedWebPDecoder.decode(encodedImage, length, qualityInfo, options);
   }
 }

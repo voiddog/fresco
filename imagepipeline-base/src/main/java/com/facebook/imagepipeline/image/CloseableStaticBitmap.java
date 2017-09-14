@@ -10,12 +10,10 @@
 package com.facebook.imagepipeline.image;
 
 import android.graphics.Bitmap;
-
 import com.facebook.common.internal.Preconditions;
 import com.facebook.common.references.CloseableReference;
 import com.facebook.common.references.ResourceReleaser;
 import com.facebook.imageutils.BitmapUtil;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
@@ -94,11 +92,28 @@ public class CloseableStaticBitmap extends CloseableBitmap {
    * <p>You cannot call this method on an object that has already been closed.
    * <p>The reference count of the bitmap is preserved. After calling this method, this object
    * can no longer be used and no longer points to the bitmap.
+   * <p>See {@link #cloneUnderlyingBitmapReference()} for an alternative that returns a cloned
+   * bitmap reference instead.
+   *
+   * @return the underlying bitmap reference after being detached from this instance
    * @throws IllegalArgumentException if this object has already been closed.
    */
   public synchronized CloseableReference<Bitmap> convertToBitmapReference() {
     Preconditions.checkNotNull(mBitmapReference, "Cannot convert a closed static bitmap");
     return detachBitmapReference();
+  }
+
+  /**
+   * Get a cloned bitmap reference for the underlying original CloseableReference&lt;Bitmap&gt;.
+   * <p>After calling this method, this object can still be used.
+   * See {@link #convertToBitmapReference()} for an alternative that detaches the original reference
+   * instead.
+   *
+   * @return the cloned bitmap reference without altering this instance or null if already closed
+   */
+  @Nullable
+  public synchronized CloseableReference<Bitmap> cloneUnderlyingBitmapReference() {
+    return CloseableReference.cloneOrNull(mBitmapReference);
   }
 
   /**

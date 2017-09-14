@@ -9,16 +9,8 @@
 
 package com.facebook.drawee.controller;
 
-import javax.annotation.Nullable;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-
 import android.content.Context;
 import android.graphics.drawable.Animatable;
-
 import com.facebook.common.internal.Objects;
 import com.facebook.common.internal.Preconditions;
 import com.facebook.common.internal.Supplier;
@@ -26,11 +18,15 @@ import com.facebook.datasource.DataSource;
 import com.facebook.datasource.DataSources;
 import com.facebook.datasource.FirstAvailableDataSourceSupplier;
 import com.facebook.datasource.IncreasingQualityDataSourceSupplier;
-import com.facebook.drawee.components.RetryManager;
 import com.facebook.drawee.gestures.GestureDetector;
 import com.facebook.drawee.interfaces.DraweeController;
 import com.facebook.drawee.interfaces.SimpleDraweeControllerBuilder;
 import com.facebook.infer.annotation.ReturnsOwnership;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import javax.annotation.Nullable;
 
 /**
  * Base implementation for Drawee controller builders.
@@ -414,12 +410,7 @@ public abstract class AbstractDraweeControllerBuilder <
     if (!mTapToRetryEnabled) {
       return;
     }
-    RetryManager retryManager = controller.getRetryManager();
-    if (retryManager == null) {
-      retryManager = new RetryManager();
-      controller.setRetryManager(retryManager);
-    }
-    retryManager.setTapToRetryEnabled(mTapToRetryEnabled);
+    controller.getRetryManager().setTapToRetryEnabled(mTapToRetryEnabled);
     maybeBuildAndSetGestureDetector(controller);
   }
 
@@ -456,8 +447,9 @@ public abstract class AbstractDraweeControllerBuilder <
       final Object callerContext,
       final CacheLevel cacheLevel);
 
-  /** Concrete builder classes should override this method to return {#code this}. */
-  protected abstract BUILDER getThis();
+  protected final BUILDER getThis() {
+    return (BUILDER) this;
+  }
 
   public enum CacheLevel {
     /* Fetch (from the network or local storage) */

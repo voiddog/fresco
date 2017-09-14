@@ -9,21 +9,19 @@
 
 package com.facebook.imagepipeline.producers;
 
+import static org.mockito.Mockito.*;
+
+import com.facebook.common.internal.Supplier;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.facebook.common.internal.Supplier;
-
 import org.junit.*;
 import org.junit.runner.*;
 import org.mockito.*;
 import org.robolectric.*;
 import org.robolectric.annotation.*;
-
-import static org.mockito.Mockito.*;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(manifest= Config.NONE)
@@ -96,7 +94,7 @@ public class StatefulProducerRunnableTest {
     doReturn(true).when(mProducerListener).requiresExtraMap(REQUEST_ID);
     doReturn(mResult).when(mResultSupplier).get();
     mStatefulProducerRunnable.run();
-    verify(mConsumer).onNewResult(mResult, true);
+    verify(mConsumer).onNewResult(mResult, Consumer.IS_LAST);
     verify(mProducerListener).onProducerStart(REQUEST_ID, PRODUCER_NAME);
     verify(mProducerListener).onProducerFinishWithSuccess(REQUEST_ID, PRODUCER_NAME, mSuccessMap);
     verify(mProducerListener, never())
@@ -108,7 +106,7 @@ public class StatefulProducerRunnableTest {
   public void testOnSuccess_noExtraMap() throws IOException {
     doReturn(mResult).when(mResultSupplier).get();
     mStatefulProducerRunnable.run();
-    verify(mConsumer).onNewResult(mResult, true);
+    verify(mConsumer).onNewResult(mResult, Consumer.IS_LAST);
     verify(mProducerListener).onProducerStart(REQUEST_ID, PRODUCER_NAME);
     verify(mProducerListener).onProducerFinishWithSuccess(REQUEST_ID, PRODUCER_NAME, null);
     verify(mProducerListener, never())

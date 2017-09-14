@@ -9,7 +9,9 @@
 
 package com.facebook.imagepipeline.producers;
 
-import java.util.Map;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
 
 import com.facebook.cache.common.CacheKey;
 import com.facebook.common.internal.ImmutableMap;
@@ -20,7 +22,7 @@ import com.facebook.imagepipeline.cache.MemoryCache;
 import com.facebook.imagepipeline.image.CloseableImage;
 import com.facebook.imagepipeline.image.ImmutableQualityInfo;
 import com.facebook.imagepipeline.request.ImageRequest;
-
+import java.util.Map;
 import org.junit.*;
 import org.junit.runner.*;
 import org.mockito.*;
@@ -28,10 +30,6 @@ import org.mockito.invocation.*;
 import org.mockito.stubbing.*;
 import org.robolectric.*;
 import org.robolectric.annotation.*;
-
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.*;
 
 /**
  * Checks basic properties of bitmap memory cache producer operation, that is:
@@ -87,7 +85,7 @@ public class BitmapMemoryCacheGetProducerTest {
     when(mProducerContext.getLowestPermittedRequestLevel())
         .thenReturn(ImageRequest.RequestLevel.BITMAP_MEMORY_CACHE);
     mBitmapMemoryCacheGetProducer.produceResults(mConsumer, mProducerContext);
-    verify(mConsumer).onNewResult(mFinalImageReference, true);
+    verify(mConsumer).onNewResult(mFinalImageReference, Consumer.IS_LAST);
     verify(mProducerListener).onProducerStart(mRequestId, PRODUCER_NAME);
     Map<String, String> extraMap =
         ImmutableMap.of(BitmapMemoryCacheProducer.EXTRA_CACHED_VALUE_FOUND, "true");
@@ -101,7 +99,7 @@ public class BitmapMemoryCacheGetProducerTest {
     setupBitmapCacheGetNotFound();
     setupInputProducerStreamingSuccess();
     mBitmapMemoryCacheGetProducer.produceResults(mConsumer, mProducerContext);
-    verify(mConsumer).onNewResult(mFinalImageReference, true);
+    verify(mConsumer).onNewResult(mFinalImageReference, Consumer.IS_LAST);
     verify(mProducerListener).onProducerStart(mRequestId, PRODUCER_NAME);
     Map<String, String> extraMap =
         ImmutableMap.of(BitmapMemoryCacheProducer.EXTRA_CACHED_VALUE_FOUND, "false");
@@ -115,7 +113,7 @@ public class BitmapMemoryCacheGetProducerTest {
     setupBitmapCacheGetNotFound();
     setupInputProducerNotFound();
     mBitmapMemoryCacheGetProducer.produceResults(mConsumer, mProducerContext);
-    verify(mConsumer).onNewResult(null, true);
+    verify(mConsumer).onNewResult(null, Consumer.IS_LAST);
     verify(mProducerListener).onProducerStart(mRequestId, PRODUCER_NAME);
     Map<String, String> extraMap =
         ImmutableMap.of(BitmapMemoryCacheProducer.EXTRA_CACHED_VALUE_FOUND, "false");
@@ -144,7 +142,7 @@ public class BitmapMemoryCacheGetProducerTest {
     when(mProducerContext.getLowestPermittedRequestLevel())
         .thenReturn(ImageRequest.RequestLevel.BITMAP_MEMORY_CACHE);
     mBitmapMemoryCacheGetProducer.produceResults(mConsumer, mProducerContext);
-    verify(mConsumer).onNewResult(null, true);
+    verify(mConsumer).onNewResult(null, Consumer.IS_LAST);
     verify(mProducerListener).onProducerStart(mRequestId, PRODUCER_NAME);
     Map<String, String> extraMap =
         ImmutableMap.of(BitmapMemoryCacheProducer.EXTRA_CACHED_VALUE_FOUND, "false");
@@ -186,7 +184,7 @@ public class BitmapMemoryCacheGetProducerTest {
     @Override
     public Void answer(InvocationOnMock invocation) throws Throwable {
       Consumer consumer = (Consumer) invocation.getArguments()[0];
-      consumer.onNewResult(mResult, true);
+      consumer.onNewResult(mResult, Consumer.IS_LAST);
       return null;
     }
   }

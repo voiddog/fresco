@@ -11,9 +11,6 @@
  */
 package com.facebook.fresco.samples.showcase.drawee;
 
-import java.util.Arrays;
-import java.util.List;
-
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Color;
@@ -29,7 +26,6 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.Spinner;
 import android.widget.Toast;
-
 import com.facebook.common.internal.Preconditions;
 import com.facebook.drawee.drawable.ScalingUtils.ScaleType;
 import com.facebook.drawee.generic.GenericDraweeHierarchy;
@@ -38,6 +34,10 @@ import com.facebook.drawee.view.SimpleDraweeView;
 import com.facebook.fresco.samples.showcase.BaseShowcaseFragment;
 import com.facebook.fresco.samples.showcase.R;
 import com.facebook.fresco.samples.showcase.common.SimpleScaleTypeAdapter;
+import com.facebook.fresco.samples.showcase.misc.ImageUriProvider;
+import com.facebook.fresco.samples.showcase.misc.ImageUriProvider.ImageSize;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * A {@link Fragment} that illustrates using rounded corners with Fresco.
@@ -81,6 +81,12 @@ public class DraweeRoundedCornersFragment extends BaseShowcaseFragment {
 
     findDrawees(view);
     initColors();
+
+    final ImageUriProvider imageUriProvider = ImageUriProvider.getInstance(getContext());
+    mDraweeRound.setImageURI(imageUriProvider.createSampleUri(ImageSize.L));
+    mDraweeRadius.setImageURI(imageUriProvider.createSampleUri(ImageSize.L));
+    mDraweeSome.setImageURI(imageUriProvider.createSampleUri(ImageSize.L));
+    mDraweeFancy.setImageURI(imageUriProvider.createSampleUri(ImageSize.L));
 
     final Spinner scaleType = (Spinner) view.findViewById(R.id.scaleType);
     final SimpleScaleTypeAdapter scaleTypeAdapter = SimpleScaleTypeAdapter.createForAllScaleTypes();

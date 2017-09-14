@@ -9,13 +9,6 @@
 
 package com.facebook.imagepipeline.producers;
 
-import javax.annotation.Nullable;
-
-import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.Executor;
-
 import com.facebook.common.internal.Closeables;
 import com.facebook.common.internal.ImmutableMap;
 import com.facebook.common.internal.Preconditions;
@@ -32,6 +25,11 @@ import com.facebook.imagepipeline.common.RotationOptions;
 import com.facebook.imagepipeline.image.EncodedImage;
 import com.facebook.imagepipeline.nativecode.JpegTranscoder;
 import com.facebook.imagepipeline.request.ImageRequest;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.Executor;
+import javax.annotation.Nullable;
 
 /**
  * Resizes and rotates JPEG image according to the EXIF orientation data or a specified rotation
@@ -98,8 +96,8 @@ public class ResizeAndRotateProducer implements Producer<EncodedImage> {
 
       JobScheduler.JobRunnable job = new JobScheduler.JobRunnable() {
         @Override
-        public void run(EncodedImage encodedImage, boolean isLast) {
-          doTransform(encodedImage, isLast);
+        public void run(EncodedImage encodedImage, @Status int status) {
+          doTransform(encodedImage, status);
         }
       };
       mJobScheduler = new JobScheduler(mExecutor, job, MIN_TRANSFORM_INTERVAL_MS);
@@ -123,13 +121,14 @@ public class ResizeAndRotateProducer implements Producer<EncodedImage> {
     }
 
     @Override
-    protected void onNewResultImpl(@Nullable EncodedImage newResult, boolean isLast) {
+    protected void onNewResultImpl(@Nullable EncodedImage newResult, @Status int status) {
       if (mIsCancelled) {
         return;
       }
+      boolean isLast = isLast(status);
       if (newResult == null) {
         if (isLast) {
-          getConsumer().onNewResult(null, true);
+          getConsumer().onNewResult(null, Consumer.IS_LAST);
         }
         return;
       }
@@ -141,11 +140,17 @@ public class ResizeAndRotateProducer implements Producer<EncodedImage> {
       }
       // just forward the result if we know that it shouldn't be transformed
       if (shouldTransform != TriState.YES) {
-        getConsumer().onNewResult(newResult, isLast);
+        if (!mProducerContext.getImageRequest().getRotationOptions().canDeferUntilRendered() &&
+            newResult.getRotationAngle() != 0 &&
+            newResult.getRotationAngle() != EncodedImage.UNKNOWN_ROTATION_ANGLE) {
+          newResult = moveImage(newResult); // for thread-safety sake
+          newResult.setRotationAngle(0);
+        }
+        getConsumer().onNewResult(newResult, status);
         return;
       }
       // we know that the result should be transformed, hence schedule it
-      if (!mJobScheduler.updateJob(newResult, isLast)) {
+      if (!mJobScheduler.updateJob(newResult, status)) {
         return;
       }
       if (isLast || mProducerContext.isIntermediateResultExpected()) {
@@ -153,7 +158,13 @@ public class ResizeAndRotateProducer implements Producer<EncodedImage> {
       }
     }
 
-    private void doTransform(EncodedImage encodedImage, boolean isLast) {
+    private EncodedImage moveImage(EncodedImage newResult) {
+      EncodedImage cloned = EncodedImage.cloneOrNull(newResult);
+      newResult.close();
+      return cloned;
+    }
+
+    private void doTransform(EncodedImage encodedImage, @Status int status) {
       mProducerContext.getListener().onProducerStart(mProducerContext.getId(), PRODUCER_NAME);
       ImageRequest imageRequest = mProducerContext.getImageRequest();
       PooledByteBufferOutputStream outputStream = mPooledByteBufferFactory.newOutputStream();
@@ -197,7 +208,10 @@ public class ResizeAndRotateProducer implements Producer<EncodedImage> {
             ret.parseMetaData();
             mProducerContext.getListener().
                 onProducerFinishWithSuccess(mProducerContext.getId(), PRODUCER_NAME, extraMap);
-            getConsumer().onNewResult(ret, isLast);
+            if (downsampleRatio != DownsampleUtil.DEFAULT_SAMPLE_SIZE) {
+              status |= Consumer.IS_RESIZING_DONE;
+            }
+            getConsumer().onNewResult(ret, status);
           } finally {
             EncodedImage.closeSafely(ret);
           }
@@ -207,7 +221,9 @@ public class ResizeAndRotateProducer implements Producer<EncodedImage> {
       } catch (Exception e) {
         mProducerContext.getListener().
             onProducerFinishWithFailure(mProducerContext.getId(), PRODUCER_NAME, e, extraMap);
-        getConsumer().onFailure(e);
+        if (isLast(status)) {
+          getConsumer().onFailure(e);
+        }
         return;
       } finally {
         Closeables.closeQuietly(is);

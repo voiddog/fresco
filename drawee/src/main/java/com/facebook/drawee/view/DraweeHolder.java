@@ -8,11 +8,12 @@
  */
 package com.facebook.drawee.view;
 
+import static com.facebook.drawee.components.DraweeEventTracker.Event;
+
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.view.MotionEvent;
 import android.view.View;
-
 import com.facebook.common.internal.Objects;
 import com.facebook.common.internal.Preconditions;
 import com.facebook.common.logging.FLog;
@@ -21,10 +22,7 @@ import com.facebook.drawee.drawable.VisibilityAwareDrawable;
 import com.facebook.drawee.drawable.VisibilityCallback;
 import com.facebook.drawee.interfaces.DraweeController;
 import com.facebook.drawee.interfaces.DraweeHierarchy;
-
 import javax.annotation.Nullable;
-
-import static com.facebook.drawee.components.DraweeEventTracker.Event;
 
 /**
  * A holder class for Drawee controller and hierarchy.
@@ -156,7 +154,7 @@ public class DraweeHolder<DH extends DraweeHierarchy>
 
     // something went wrong here; controller is not attached, yet the hierarchy has to be drawn
     // log error and attach the controller
-    FLog.wtf(
+    FLog.w(
         DraweeEventTracker.class,
         "%x: Draw requested for a non-attached controller %x. %s",
         System.identityHashCode(this),

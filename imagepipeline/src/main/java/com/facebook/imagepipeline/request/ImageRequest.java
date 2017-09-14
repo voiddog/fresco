@@ -9,24 +9,6 @@
 
 package com.facebook.imagepipeline.request;
 
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
-
-import java.io.File;
-
-import android.net.Uri;
-
-import com.facebook.common.internal.Objects;
-import com.facebook.common.media.MediaUtils;
-import com.facebook.common.util.UriUtil;
-import com.facebook.imagepipeline.common.ImageDecodeOptions;
-import com.facebook.imagepipeline.common.Priority;
-import com.facebook.imagepipeline.common.ResizeOptions;
-import com.facebook.imagepipeline.common.RotationOptions;
-import com.facebook.imagepipeline.common.SourceUriType;
-import com.facebook.imagepipeline.listener.RequestListener;
-import com.facebook.imageutils.BitmapUtil;
-
 import static com.facebook.imagepipeline.common.SourceUriType.SOURCE_TYPE_DATA;
 import static com.facebook.imagepipeline.common.SourceUriType.SOURCE_TYPE_LOCAL_ASSET;
 import static com.facebook.imagepipeline.common.SourceUriType.SOURCE_TYPE_LOCAL_CONTENT;
@@ -36,6 +18,22 @@ import static com.facebook.imagepipeline.common.SourceUriType.SOURCE_TYPE_LOCAL_
 import static com.facebook.imagepipeline.common.SourceUriType.SOURCE_TYPE_NETWORK;
 import static com.facebook.imagepipeline.common.SourceUriType.SOURCE_TYPE_QUALIFIED_RESOURCE;
 import static com.facebook.imagepipeline.common.SourceUriType.SOURCE_TYPE_UNKNOWN;
+
+import android.net.Uri;
+import com.facebook.common.internal.Objects;
+import com.facebook.common.media.MediaUtils;
+import com.facebook.common.util.UriUtil;
+import com.facebook.imagepipeline.common.BytesRange;
+import com.facebook.imagepipeline.common.ImageDecodeOptions;
+import com.facebook.imagepipeline.common.Priority;
+import com.facebook.imagepipeline.common.ResizeOptions;
+import com.facebook.imagepipeline.common.RotationOptions;
+import com.facebook.imagepipeline.common.SourceUriType;
+import com.facebook.imagepipeline.listener.RequestListener;
+import com.facebook.imageutils.BitmapUtil;
+import java.io.File;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * Immutable object encapsulating everything pipeline has to know about requested image to proceed.
@@ -70,6 +68,9 @@ public class ImageRequest {
 
   /** rotation options */
   private final RotationOptions mRotationOptions;
+
+  /** Range of bytes to request from the network */
+  private final @Nullable BytesRange mBytesRange;
 
   /** Priority levels of this request. */
   private final Priority mRequestPriority;
@@ -112,6 +113,7 @@ public class ImageRequest {
     mResizeOptions = builder.getResizeOptions();
     mRotationOptions = builder.getRotationOptions() == null
         ? RotationOptions.autoRotate() : builder.getRotationOptions();
+    mBytesRange = builder.getBytesRange();
 
     mRequestPriority = builder.getRequestPriority();
     mLowestPermittedRequestLevel = builder.getLowestPermittedRequestLevel();
@@ -160,6 +162,11 @@ public class ImageRequest {
   @Deprecated
   public boolean getAutoRotateEnabled() {
     return mRotationOptions.useImageMetadata();
+  }
+
+  @Nullable
+  public BytesRange getBytesRange() {
+    return mBytesRange;
   }
 
   public ImageDecodeOptions getImageDecodeOptions() {
@@ -228,6 +235,7 @@ public class ImageRequest {
         .add("priority", mRequestPriority)
         .add("resizeOptions", mResizeOptions)
         .add("rotationOptions", mRotationOptions)
+        .add("bytesRange", mBytesRange)
         .add("mediaVariations", mMediaVariations)
         .toString();
   }
